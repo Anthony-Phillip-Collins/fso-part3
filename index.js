@@ -43,15 +43,29 @@ app.get('/api/persons', (request, response) => {
 
 app.post('/api/persons', (request, response) => {
   const { name, number } = request.body;
-  if (!name || !number) {
-    response
-      .status(400)
-      .json({ ok: false, error: 'Payload requires name and number values!' });
+  const error = validatePayload(request.body);
+
+  if (error) {
+    response.status(400).json({ ok: false, error });
   } else {
     persons.push({ name, number, id: getUniqueId() });
     response.status(200).json({ ok: true, persons });
   }
 });
+
+const validatePayload = ({ name, number }) => {
+  let error;
+  if (!name && !number) {
+    error = 'Payload requires name and number values!';
+  } else if (!name) {
+    error = 'Payload requires a name!';
+  } else if (!number) {
+    error = 'Payload requires a number!';
+  } else if (persons.find((p) => p.name.toLowerCase() === name.toLowerCase())) {
+    error = `Person with the name ${name} already exists!`;
+  }
+  return error;
+};
 
 const getUniqueId = () => Math.max(...persons.map(({ id }) => id)) + 1;
 
