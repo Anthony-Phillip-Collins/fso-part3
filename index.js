@@ -25,18 +25,28 @@ const persons = [
 ];
 
 app.get('/', (request, response) => {
-  response.status(200).json({ hello: 'world' });
+  response.json({ hello: 'world' });
 });
 
 app.get('/info', (request, response) => {
-  response.status(200).send(`
+  response.send(`
       <p>Phonebook has info for ${persons.length} people.</p>
       <p>${new Date()}</p>
     `);
 });
 
 app.get('/api/persons', (request, response) => {
-  response.status(200).json(persons);
+  response.json(persons);
+});
+
+app.get('/api/persons/:id', (request, response) => {
+  const id = Number(request.params.id);
+  const found = persons.find((person) => person.id === id);
+  if (found) {
+    response.status(200).json(found);
+  } else {
+    response.status(404).json({ error: `Person with id ${id} doesn't exist!` });
+  }
 });
 
 const PORT = 3001;
