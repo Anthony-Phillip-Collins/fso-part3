@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 
+app.use(express.json());
+
 let persons = [
   {
     id: 1,
@@ -28,11 +30,6 @@ app.get('/', (request, response) => {
   response.json({ hello: 'world' });
 });
 
-// app.delete('/api/persons/:id', (req, res) => {
-//   const person = getPersonById(requerst.params.id);
-//   res.status(200).send(`DELETE Request Called ${req.params.id}`);
-// });
-
 app.get('/info', (request, response) => {
   response.send(`
       <p>Phonebook has info for ${persons.length} people.</p>
@@ -43,6 +40,20 @@ app.get('/info', (request, response) => {
 app.get('/api/persons', (request, response) => {
   response.json(persons);
 });
+
+app.post('/api/persons', (request, response) => {
+  const { name, number } = request.body;
+  if (!name || !number) {
+    response
+      .status(400)
+      .json({ ok: false, error: 'Payload requires name and number values!' });
+  } else {
+    persons.push({ name, number, id: getUniqueId() });
+    response.status(200).json({ ok: true, persons });
+  }
+});
+
+const getUniqueId = () => Math.max(...persons.map(({ id }) => id)) + 1;
 
 const getPersonById = (id) =>
   persons.find((person) => person.id === Number(id));
