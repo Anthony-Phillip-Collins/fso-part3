@@ -28,6 +28,13 @@ app.get('/', (request, response) => {
   response.status(200).json({ hello: 'world' });
 });
 
+app.get('/info', (request, response) => {
+  response.status(200).send(`
+      <p>Phonebook has info for ${persons.length} people.</p>
+      <p>${new Date()}</p>
+    `);
+});
+
 app.get('/api/persons', (request, response) => {
   response.status(200).json(persons);
 });
