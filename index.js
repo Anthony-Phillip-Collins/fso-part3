@@ -10,6 +10,7 @@ morgan.token('payload', (req) => {
   return '';
 });
 
+app.use(express.static('build'));
 app.use(express.json());
 app.use(
   morgan(':method :url :status :res[content-length] :response-time ms :payload')
@@ -38,10 +39,6 @@ let persons = [
   },
 ];
 
-app.get('/', (request, response) => {
-  response.json({ hello: 'world' });
-});
-
 app.get('/info', (request, response) => {
   response.send(`
       <p>Phonebook has info for ${persons.length} people.</p>
@@ -54,14 +51,14 @@ app.get('/api/persons', (request, response) => {
 });
 
 app.post('/api/persons', (request, response) => {
-  const { name, number } = request.body;
   const error = validatePayload(request.body);
 
   if (error) {
     response.status(400).json({ ok: false, error });
   } else {
-    persons.push({ name, number, id: getUniqueId() });
-    response.status(200).json({ ok: true, persons });
+    const person = { ...request.body, id: getUniqueId() };
+    persons.push(person);
+    response.status(200).json(person);
   }
 });
 
@@ -108,7 +105,7 @@ app.delete('/api/persons/:id', (request, response) => {
   }
 });
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server is running on ${PORT}`);
 });
