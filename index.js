@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 
-const persons = [
+let persons = [
   {
     id: 1,
     name: 'Arto Hellas',
@@ -28,6 +28,11 @@ app.get('/', (request, response) => {
   response.json({ hello: 'world' });
 });
 
+// app.delete('/api/persons/:id', (req, res) => {
+//   const person = getPersonById(requerst.params.id);
+//   res.status(200).send(`DELETE Request Called ${req.params.id}`);
+// });
+
 app.get('/info', (request, response) => {
   response.send(`
       <p>Phonebook has info for ${persons.length} people.</p>
@@ -39,13 +44,30 @@ app.get('/api/persons', (request, response) => {
   response.json(persons);
 });
 
+const getPersonById = (id) =>
+  persons.find((person) => person.id === Number(id));
+
 app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id);
-  const found = persons.find((person) => person.id === id);
-  if (found) {
-    response.status(200).json(found);
+  const id = request.params.id;
+  const person = getPersonById(id);
+  if (person) {
+    response.status(200).json(person);
   } else {
     response.status(404).json({ error: `Person with id ${id} doesn't exist!` });
+  }
+});
+
+app.delete('/api/persons/:id', (request, response) => {
+  const id = request.params.id;
+  const person = getPersonById(id);
+
+  if (person) {
+    persons = persons.filter((p) => p.id !== Number(id));
+    response.status(204).end();
+  } else {
+    response
+      .status(404)
+      .json({ error: `Person with the id ${id} doesn’t exist!` });
   }
 });
 
