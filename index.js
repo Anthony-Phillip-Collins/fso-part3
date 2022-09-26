@@ -52,7 +52,6 @@ app.get('/api/persons', (request, response) => {
 
 app.post('/api/persons', (request, response) => {
   const error = validatePayload(request.body);
-
   if (error) {
     response.status(400).json({ ok: false, error });
   } else {
