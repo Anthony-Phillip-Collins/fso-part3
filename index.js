@@ -1,5 +1,8 @@
+require('dotenv').config();
+
 const express = require('express');
 const morgan = require('morgan');
+const Person = require('./models/Person');
 
 const app = express();
 
@@ -16,52 +19,87 @@ app.use(
   morgan(':method :url :status :res[content-length] :response-time ms :payload')
 );
 
-let persons = [
-  {
-    id: 1,
-    name: 'Arto Hellas',
-    number: '040-123456',
-  },
-  {
-    id: 2,
-    name: 'Ada Lovelace',
-    number: '39-44-5323523',
-  },
-  {
-    id: 3,
-    name: 'Dan Abramov',
-    number: '12-43-234345',
-  },
-  {
-    id: 4,
-    name: 'Mary Poppendieck',
-    number: '39-23-6423122',
-  },
-];
-
-app.get('/info', (request, response) => {
-  response.send(`
-      <p>Phonebook has info for ${persons.length} people.</p>
-      <p>${new Date()}</p>
-    `);
-});
-
-app.get('/api/persons', (request, response) => {
-  response.json(persons);
-});
-
-app.post('/api/persons', (request, response) => {
-  const error = validatePayload(request.body);
-  if (error) {
-    response.status(400).json({ ok: false, error });
-  } else {
-    const person = { ...request.body, id: getUniqueId() };
-    persons.push(person);
-    response.status(200).json(person);
+app.get('/info', async (request, response) => {
+  try {
+    const persons = await Person.getAll();
+    response.send(`
+        <p>Phonebook has info for ${persons.length} people.</p>
+        <p>${new Date()}</p>
+      `);
+  } catch (error) {
+    response.status(500).json({ error: `There has been a server error.` });
   }
 });
 
-const validatePayload = ({ name, number }) => {
+app.get('/api/persons', async (request, response) => {
+  try {
+    const persons = await Person.getAll();
+    response.status(200).json(persons);
+  } catch (error) {
+    response.status(500).json({ error: `There has been a server error.` });
+  }
+});
+
+app.post('/api/persons', async (request, response) => {
+  const error = await validatePayload(request.body);
+
+  if (error) {
+    response.status(400).json({ ok: false, error });
+    return;
+  }
+
+  try {
+    const person = await new Person(request.body).save();
+    response.status(201).json(person);
+  } catch (error) {
+    response.status(400).json({ ok: false, error });
+  }
+});
+
+app.get('/api/persons/:id', async (request, response) => {
+  const { id } = request.params;
+  try {
+    const person = await Person.findById(id);
+    response.status(200).json(person);
+  } catch (error) {
+    response.status(404).json({ error: `Person with id ${id} doesn't exist!` });
+  }
+});
+
+app.delete('/api/persons/:id', async (request, response) => {
+  const { id } = request.params;
+
+  try {
+    await Person.findByIdAndDelete(id);
+    response.status(204).end();
+  } catch (error) {
+    response
+      .status(404)
+      .json({ error: `Person with the id ${id} doesn’t exist!` });
+  }
+});
+
+app.put('/api/persons/:id', async (request, response) => {
+  const { id } = request.params;
+  const { name, number } = request.body;
+
+  try {
+    const person = await Person.findByIdAndUpdate(
+      id,
+      { name, number },
+      {
+        new: true,
+      }
+    );
+    response.status(200).json(person);
+  } catch (error) {
+    response
+      .status(404)
+      .json({ error: `Person with the id ${id} doesn’t exist!` });
+  }
+});
+
+const validatePayload = async ({ name, number }) => {
   let error;
   if (!name && !number) {
     error = 'Payload requires name and number values!';
@@ -69,40 +107,17 @@ const validatePayload = ({ name, number }) => {
     error = 'Payload requires a name!';
   } else if (!number) {
     error = 'Payload requires a number!';
-  } else if (persons.find((p) => p.name.toLowerCase() === name.toLowerCase())) {
-    error = `Person with the name ${name} already exists!`;
+  } else {
+    const exists = await nameExists(name);
+    error = exists && `Person with the name ${name} already exists!`;
   }
   return error;
 };
 
-const getUniqueId = () => Math.max(...persons.map(({ id }) => id)) + 1;
-
-const getPersonById = (id) =>
-  persons.find((person) => person.id === Number(id));
-
-app.get('/api/persons/:id', (request, response) => {
-  const id = request.params.id;
-  const person = getPersonById(id);
-  if (person) {
-    response.status(200).json(person);
-  } else {
-    response.status(404).json({ error: `Person with id ${id} doesn't exist!` });
-  }
-});
-
-app.delete('/api/persons/:id', (request, response) => {
-  const id = request.params.id;
-  const person = getPersonById(id);
-
-  if (person) {
-    persons = persons.filter((p) => p.id !== Number(id));
-    response.status(204).end();
-  } else {
-    response
-      .status(404)
-      .json({ error: `Person with the id ${id} doesn’t exist!` });
-  }
-});
+const nameExists = async (name) => {
+  const all = await Person.getAll();
+  return all.find((p) => p.name.toLowerCase() === name.toLowerCase());
+};
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

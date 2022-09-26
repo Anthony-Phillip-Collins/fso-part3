@@ -1,11 +1,10 @@
+require('dotenv').config();
+
 const mongoose = require('mongoose');
-const { Person } = require('./models/Person');
+const Person = require('./models/Person');
 
 const [node, mongojs, password, name, number] = process.argv;
 const readOnly = !name || !number;
-
-const databaseName = 'phonebook';
-const userName = 'fullstackopen';
 
 const init = () => {
   if (!password) {
@@ -18,37 +17,32 @@ const init = () => {
     );
     process.exit(1);
   }
-
-  connect();
+  run();
 };
 
-const connect = () => {
-  const url = `mongodb+srv://${userName}:${password}@cluster0.8cuke.mongodb.net/${databaseName}?retryWrites=true&w=majority`;
-  mongoose
-    .connect(url)
-    .then((result) => run())
-    .catch((error) => console.log(error.message));
-};
-
-const run = async () => {
+const run = () => {
   if (!readOnly) {
-    await new Person({
+    new Person({
       name,
       number,
       date: new Date(),
-    }).save();
-
-    console.log(`${name} saved!`);
+    })
+      .save()
+      .then((person) => {
+        console.log(`${person.name} saved!`);
+      })
+      .catch((error) => console.log(error.message));
   } else {
-    const all = await Person.getAll();
-
-    console.log(
-      `phonebook: \n${all
-        .map(({ name, number }) => `${name} ${number} \n`)
-        .join('')}`
-    );
+    Person.getAll()
+      .then((persons) => {
+        console.log(
+          `phonebook: \n${persons
+            .map(({ name, number }) => `${name} ${number} \n`)
+            .join('')}`
+        );
+      })
+      .catch((error) => console.log(error.message));
   }
-
   mongoose.connection.close();
 };
 

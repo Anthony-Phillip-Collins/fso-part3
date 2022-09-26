@@ -1,5 +1,16 @@
+require('dotenv').config();
+
 const mongoose = require('mongoose');
 const { Schema, model } = mongoose;
+const { schemaIdToString } = require('./util');
+const url = process.env.MONGODB_URI;
+
+const connect = () => {
+  mongoose
+    .connect(url)
+    .then((result) => console.log('Mongo connection success.'))
+    .catch((error) => console.log(error.message));
+};
 
 const personSchema = new Schema(
   {
@@ -18,4 +29,7 @@ const personSchema = new Schema(
 
 const Person = model('Person', personSchema);
 
-exports.Person = Person;
+schemaIdToString(personSchema);
+connect();
+
+module.exports = Person;
