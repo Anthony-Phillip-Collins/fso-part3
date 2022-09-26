@@ -60,9 +60,15 @@ app.get('/api/persons/:id', async (request, response) => {
   const { id } = request.params;
   try {
     const person = await Person.findById(id);
-    response.status(200).json(person);
+    if (person) {
+      response.status(200).json(person);
+    } else {
+      response
+        .status(404)
+        .json({ error: `Person with the id ${id} doesn’t exist!` });
+    }
   } catch (error) {
-    response.status(404).json({ error: `Person with id ${id} doesn't exist!` });
+    response.status(400).json({ error: `malformatted id!` });
   }
 });
 
@@ -70,8 +76,14 @@ app.delete('/api/persons/:id', async (request, response) => {
   const { id } = request.params;
 
   try {
-    await Person.findByIdAndDelete(id);
-    response.status(204).end();
+    const person = await Person.findByIdAndDelete(id);
+    if (person) {
+      response.status(204).end();
+    } else {
+      response
+        .status(404)
+        .json({ error: `Person with the id ${id} doesn’t exist!` });
+    }
   } catch (error) {
     response
       .status(404)
@@ -86,12 +98,16 @@ app.put('/api/persons/:id', async (request, response) => {
   try {
     const person = await Person.findByIdAndUpdate(
       id,
-      { name, number },
-      {
-        new: true,
-      }
+      { number },
+      { new: true }
     );
-    response.status(200).json(person);
+    if (person) {
+      response.status(200).json(person);
+    } else {
+      response
+        .status(404)
+        .json({ error: `Person with the id ${id} doesn’t exist!` });
+    }
   } catch (error) {
     response
       .status(404)
