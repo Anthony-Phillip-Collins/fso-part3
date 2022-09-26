@@ -107,10 +107,15 @@ const validatePayload = async ({ name, number }) => {
     error = 'Payload requires a name!';
   } else if (!number) {
     error = 'Payload requires a number!';
-  } else {
+  }
+  /*
+   * commented out as per 3.14: "At this stage, the phonebook can have multiple entries for a person with the same name."
+   *
+  else {
     const exists = await nameExists(name);
     error = exists && `Person with the name ${name} already exists!`;
   }
+   */
   return error;
 };
 
