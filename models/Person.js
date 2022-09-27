@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const mongoose = require('mongoose');
+const uniqueValidator = require('mongoose-unique-validator');
 const { Schema, model } = mongoose;
 const { schemaIdToString } = require('./util');
 const url = process.env.MONGODB_URI;
@@ -18,11 +19,18 @@ const personSchema = new Schema(
       type: String,
       required: true,
       minlength: [3, 'The name has to be at least 3 characters long!'],
+      unique: [true, 'Name already exists, has to be unique!'],
     },
     number: {
       type: String,
+      validate: {
+        validator: function (v) {
+          return /^(\d{2,3}-\d{6,})/.test(v);
+        },
+        message: (props) =>
+          `${props.value} is not a valid phone number! It has to be at least 8 characters long and be formatted like 00-000000 or 000-000000.`,
+      },
       required: true,
-      minLength: [6, 'Number has to be at least 6 characters long!'],
     },
     date: { type: Date, default: Date.now },
   },
@@ -34,6 +42,10 @@ const personSchema = new Schema(
     },
   }
 );
+
+personSchema.plugin(uniqueValidator, {
+  message: '{VALUE} already exists. The {PATH} has to be {TYPE}.',
+});
 
 const Person = model('Person', personSchema);
 

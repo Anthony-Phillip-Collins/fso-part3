@@ -16,7 +16,7 @@ const errorHandler = (err, req, res, next) => {
       break;
 
     case ErrorName.CastError:
-      res.status(400).json({ error: `malformatted id!` });
+      res.status(400).json({ error: `Malformatted id!` });
       break;
 
     case ErrorName.ValidationError:
