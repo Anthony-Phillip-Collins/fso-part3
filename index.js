@@ -2,8 +2,9 @@ require('dotenv').config();
 
 const express = require('express');
 const morgan = require('morgan');
+const { errors, ErrorName } = require('./middleware/errors');
+const unknownEndpoint = require('./middleware/unknownEndpoint');
 const Person = require('./models/Person');
-
 const app = express();
 
 morgan.token('payload', (req) => {
@@ -19,100 +20,82 @@ app.use(
   morgan(':method :url :status :res[content-length] :response-time ms :payload')
 );
 
-app.get('/info', async (request, response) => {
-  try {
-    const persons = await Person.getAll();
-    response.send(`
+app.get('/info', (req, res, next) => {
+  Person.getAll()
+    .then((persons) => {
+      res.send(`
         <p>Phonebook has info for ${persons.length} people.</p>
         <p>${new Date()}</p>
       `);
-  } catch (error) {
-    response.status(500).json({ error: `There has been a server error.` });
-  }
+    })
+    .catch(next);
 });
 
-app.get('/api/persons', async (request, response) => {
-  try {
-    const persons = await Person.getAll();
-    response.status(200).json(persons);
-  } catch (error) {
-    response.status(500).json({ error: `There has been a server error.` });
-  }
+app.get('/api/persons', (req, res, next) => {
+  Person.getAll()
+    .then((persons) => {
+      res.status(200).json(persons);
+    })
+    .catch(next);
 });
 
-app.post('/api/persons', async (request, response) => {
-  const error = await validatePayload(request.body);
+app.post('/api/persons', async (req, res, next) => {
+  const error = await validatePayload(req.body);
 
   if (error) {
-    response.status(400).json({ ok: false, error });
+    res.status(400).json({ error });
     return;
   }
 
-  try {
-    const person = await new Person(request.body).save();
-    response.status(201).json(person);
-  } catch (error) {
-    response.status(400).json({ ok: false, error });
-  }
+  new Person(req.body)
+    .save()
+    .then((person) => {
+      res.status(201).json(person);
+    })
+    .catch(next);
 });
 
-app.get('/api/persons/:id', async (request, response) => {
-  const { id } = request.params;
-  try {
-    const person = await Person.findById(id);
-    if (person) {
-      response.status(200).json(person);
-    } else {
-      response
-        .status(404)
-        .json({ error: `Person with the id ${id} doesn’t exist!` });
-    }
-  } catch (error) {
-    response.status(400).json({ error: `malformatted id!` });
-  }
+app.get('/api/persons/:id', (req, res, next) => {
+  const { id } = req.params;
+
+  Person.findById(id)
+    .then((person) => {
+      if (person) {
+        res.status(200).json(person);
+      } else {
+        next({ name: ErrorName.NotFound, id });
+      }
+    })
+    .catch(next);
 });
 
-app.delete('/api/persons/:id', async (request, response) => {
-  const { id } = request.params;
+app.delete('/api/persons/:id', (req, res, next) => {
+  const { id } = req.params;
 
-  try {
-    const person = await Person.findByIdAndDelete(id);
-    if (person) {
-      response.status(204).end();
-    } else {
-      response
-        .status(404)
-        .json({ error: `Person with the id ${id} doesn’t exist!` });
-    }
-  } catch (error) {
-    response
-      .status(404)
-      .json({ error: `Person with the id ${id} doesn’t exist!` });
-  }
+  Person.findByIdAndDelete(id)
+    .then((person) => {
+      if (person) {
+        res.status(204).end();
+        return;
+      }
+      next({ name: ErrorName.NotFound, id });
+    })
+    .catch(next);
 });
 
-app.put('/api/persons/:id', async (request, response) => {
-  const { id } = request.params;
-  const { name, number } = request.body;
+app.put('/api/persons/:id', (req, res, next) => {
+  const { id } = req.params;
+  const { name, number } = req.body;
 
-  try {
-    const person = await Person.findByIdAndUpdate(
-      id,
-      { number },
-      { new: true }
-    );
-    if (person) {
-      response.status(200).json(person);
-    } else {
-      response
-        .status(404)
-        .json({ error: `Person with the id ${id} doesn’t exist!` });
-    }
-  } catch (error) {
-    response
-      .status(404)
-      .json({ error: `Person with the id ${id} doesn’t exist!` });
-  }
+  Person.findByIdAndUpdate(id, { number }, { new: true })
+    .then((person) => {
+      if (person) {
+        res.status(200).json(person);
+        return;
+      }
+      next({ name: ErrorName.NotFound, id });
+    })
+    .catch(next);
 });
 
 const validatePayload = async ({ name, number }) => {
@@ -139,6 +122,9 @@ const nameExists = async (name) => {
   const all = await Person.getAll();
   return all.find((p) => p.name.toLowerCase() === name.toLowerCase());
 };
+
+app.use(unknownEndpoint);
+app.use(errors);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
