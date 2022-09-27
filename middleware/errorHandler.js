@@ -8,15 +8,16 @@ const errorHandler = (err, req, res, next) => {
   let message = '';
   switch (err.name) {
     case ErrorName.NotFound:
-      message = `Resource could not be found!`;
+      message = 'Resource could not be found!';
       if (err.id) {
-        message = `Person with the id ${err.id} no longer exist!`;
+        message = 'Person no longer exist!';
       }
-      res.status(404).json({ error: message });
+      res.status(404).json({ error: { message } });
       break;
 
     case ErrorName.CastError:
-      res.status(400).json({ error: `Malformatted id!` });
+      message = 'Malformatted id!';
+      res.status(400).json({ error: { message } });
       break;
 
     case ErrorName.ValidationError:
