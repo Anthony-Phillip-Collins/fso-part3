@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const morgan = require('morgan');
-const { errors, ErrorName } = require('./middleware/errors');
+const { errorHandler, ErrorName } = require('./middleware/errorHandler');
 const unknownEndpoint = require('./middleware/unknownEndpoint');
 const Person = require('./models/Person');
 const app = express();
@@ -40,14 +40,9 @@ app.get('/api/persons', (req, res, next) => {
 });
 
 app.post('/api/persons', async (req, res, next) => {
-  const error = await validatePayload(req.body);
+  const { name, number } = req.body;
 
-  if (error) {
-    res.status(400).json({ error });
-    return;
-  }
-
-  new Person(req.body)
+  new Person({ name, number, date: new Date() })
     .save()
     .then((person) => {
       res.status(201).json(person);
@@ -87,7 +82,11 @@ app.put('/api/persons/:id', (req, res, next) => {
   const { id } = req.params;
   const { name, number } = req.body;
 
-  Person.findByIdAndUpdate(id, { number }, { new: true })
+  Person.findByIdAndUpdate(
+    id,
+    { name, number },
+    { new: true, runValidators: true }
+  )
     .then((person) => {
       if (person) {
         res.status(200).json(person);
@@ -98,33 +97,8 @@ app.put('/api/persons/:id', (req, res, next) => {
     .catch(next);
 });
 
-const validatePayload = async ({ name, number }) => {
-  let error;
-  if (!name && !number) {
-    error = 'Payload requires name and number values!';
-  } else if (!name) {
-    error = 'Payload requires a name!';
-  } else if (!number) {
-    error = 'Payload requires a number!';
-  }
-  /*
-   * commented out as per 3.14: "At this stage, the phonebook can have multiple entries for a person with the same name."
-   *
-  else {
-    const exists = await nameExists(name);
-    error = exists && `Person with the name ${name} already exists!`;
-  }
-   */
-  return error;
-};
-
-const nameExists = async (name) => {
-  const all = await Person.getAll();
-  return all.find((p) => p.name.toLowerCase() === name.toLowerCase());
-};
-
 app.use(unknownEndpoint);
-app.use(errors);
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

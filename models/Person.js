@@ -14,8 +14,16 @@ const connect = () => {
 
 const personSchema = new Schema(
   {
-    name: String, // String is shorthand for {type: String}
-    number: String,
+    name: {
+      type: String,
+      required: true,
+      minlength: [3, 'The name has to be at least 3 characters long!'],
+    },
+    number: {
+      type: String,
+      required: true,
+      minLength: [6, 'Number has to be at least 6 characters long!'],
+    },
     date: { type: Date, default: Date.now },
   },
   {

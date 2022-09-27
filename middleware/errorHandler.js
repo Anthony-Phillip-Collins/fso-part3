@@ -1,11 +1,10 @@
 const ErrorName = Object.freeze({
   NotFound: 'NotFound',
   CastError: 'CastError',
+  ValidationError: 'ValidationError',
 });
 
-const errors = (err, req, res, next) => {
-  console.log(err, req.params);
-
+const errorHandler = (err, req, res, next) => {
   let message = '';
   switch (err.name) {
     case ErrorName.NotFound:
@@ -20,13 +19,18 @@ const errors = (err, req, res, next) => {
       res.status(400).json({ error: `malformatted id!` });
       break;
 
+    case ErrorName.ValidationError:
+      const key = Object.keys(err.errors).pop();
+      res.status(400).json({ error: err.errors[key] });
+      break;
+
     default:
       res.status(500).send('Something broke!');
   }
 };
 
 const modules = {
-  errors,
+  errorHandler,
   ErrorName,
 };
 
