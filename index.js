@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const { errorHandler, ErrorName } = require('./middleware/errorHandler');
 const unknownEndpoint = require('./middleware/unknownEndpoint');
 const Person = require('./models/Person');
+
 const app = express();
 
 morgan.token('payload', (req) => {
@@ -17,7 +18,7 @@ morgan.token('payload', (req) => {
 app.use(express.static('build'));
 app.use(express.json());
 app.use(
-  morgan(':method :url :status :res[content-length] :response-time ms :payload')
+  morgan(':method :url :status :res[content-length] :response-time ms :payload'),
 );
 
 app.get('/info', (req, res, next) => {
@@ -42,7 +43,7 @@ app.get('/api/persons', (req, res, next) => {
 app.post('/api/persons', async (req, res, next) => {
   const { name, number } = req.body;
 
-  new Person({ name, number, date: new Date() })
+  new Person({ name, number })
     .save()
     .then((person) => {
       res.status(201).json(person);
@@ -85,7 +86,7 @@ app.put('/api/persons/:id', (req, res, next) => {
   Person.findByIdAndUpdate(
     id,
     { name, number },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   )
     .then((person) => {
       if (person) {
@@ -101,6 +102,4 @@ app.use(unknownEndpoint);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server is running on ${PORT}`);
-});
+app.listen(PORT, () => {});

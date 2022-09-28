@@ -4,6 +4,7 @@ const ErrorName = Object.freeze({
   ValidationError: 'ValidationError',
 });
 
+// eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, next) => {
   let message = '';
   switch (err.name) {
@@ -21,8 +22,7 @@ const errorHandler = (err, req, res, next) => {
       break;
 
     case ErrorName.ValidationError:
-      const key = Object.keys(err.errors).pop();
-      res.status(400).json({ error: err.errors[key] });
+      res.status(400).json({ error: err.errors[Object.keys(err.errors).pop()] });
       break;
 
     default:
